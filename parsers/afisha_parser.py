@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
 import datetime
 from enum import StrEnum
 from bs4 import BeautifulSoup
 import dateparser
+from tqdm import tqdm
 
 from adapters.utils import get_page
 from domain.event import Event, TimeSlot, EventTypes
@@ -18,7 +18,7 @@ class AfishaParser:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url
 
-    def get_films(self, start_date: datetime, end_date: datetime) -> list[Event]:
+    def get_films(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
         uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date, event_type=AfishaEventsTypes.Films)
         url = self.build_url(uri)
         page = get_page(url)
@@ -28,7 +28,7 @@ class AfishaParser:
         block_films = page_parser.find("div", class_="S52Wl")
         films = []
 
-        for film in block_films:
+        for film in tqdm(block_films, desc="Parse films", colour="green"):
             name_link = film.findAll("a", class_="CjnHd y8A5E nbCNS yknrM")
 
             if name_link:
@@ -60,32 +60,33 @@ class AfishaParser:
             return []
 
         time_slots = []
-        for time_slot in block_time_slots:
+        for time_slot in block_time_slots.childGenerator():
             place_time_slot = time_slot.findAll("a", class_="CjnHd y8A5E MnbCM")
 
-            if place_time_slot:
-                place_time_slot = place_time_slot[0].text
-                block_time_slots = time_slot.findAll("div", class_="bOvGC k15XR")[0]
-                price_time_slots = block_time_slots.findAll("div", class_="KS9_D")
+            if not place_time_slot:
+                continue
+            place_time_slot = place_time_slot[0].text
+            block_time_slots = time_slot.findAll("div", class_="bOvGC k15XR")[0]
+            price_time_slots = block_time_slots.findAll("div", class_="KS9_D")
 
-                for elem in price_time_slots:
-                    price = elem.find("div", class_="ImmXK").text.split()
-                    start_date = f'{date} {elem.find("div", class_="WVR9s").text}:00'
-                    formatted_start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            for elem in price_time_slots:
+                price = elem.find("div", class_="ImmXK").text.split()
+                start_date = f'{date} {elem.find("div", class_="WVR9s").text}:00'
+                formatted_start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
 
-                    if len(price) < 2 or not (price[1].isdigit()):
-                        continue
-                    formatted_price = float(price[1])
+                if len(price) < 2 or not (price[1].isdigit()):
+                    continue
+                formatted_price = float(price[1])
 
-                    time_slots.append(TimeSlot(
-                        start_date=formatted_start_date,
-                        price=formatted_price,
-                        place=place_time_slot
-                    ))
+                time_slots.append(TimeSlot(
+                    start_date=formatted_start_date,
+                    price=formatted_price,
+                    place=place_time_slot
+                ))
 
         return time_slots
 
-    def get_concerts(self, start_date: datetime, end_date: datetime) -> list[Event]:
+    def get_concerts(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
         uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date,
                                            event_type=AfishaEventsTypes.Concerts)
         url = self.build_url(uri)
@@ -109,23 +110,18 @@ class AfishaParser:
                 genre = genre.text
 
             if price is None or len(price.split()) <= 1 or not price.split()[1].isdigit():
-                time_slot = TimeSlot(
-                    start_date=datetime.date(1, 1, 1),
-                    price=0.0,
-                    place=''
-                )
-            else:
-                price = float(price.split()[1])
-                date_place = concert.find("div", class_="_JP4u").text.split(", ")
-                date, place = dateparser.parse(date_place[0]), date_place[1]
-                # print(date, price, place)
-                # print(type(date), type(price), type(place))
-                # print('-------------------------')
-                time_slot = TimeSlot(
-                    start_date=start_date,
-                    price=price,
-                    place=place
-                )
+                continue
+            price = float(price.split()[1])
+            date_place = concert.find("div", class_="_JP4u").text.split(", ")
+            date, place = dateparser.parse(date_place[0]), date_place[1]
+            # print(date, price, place)
+            # print(type(date), type(price), type(place))
+            # print('-------------------------')
+            time_slot = TimeSlot(
+                start_date=start_date,
+                price=price,
+                place=place
+            )
             concerts.append(Event(
                 name=name,
                 genre=genre,
@@ -135,7 +131,7 @@ class AfishaParser:
             ))
         return concerts
 
-    def get_perfomances(self, start_date: datetime, end_date: datetime) -> list[Event]:
+    def get_perfomances(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
         uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date,
                                            event_type=AfishaEventsTypes.Performances)
         url = self.build_url(uri)
@@ -159,23 +155,18 @@ class AfishaParser:
                 genre = genre.text
 
             if price is None or len(price.text.split()) <= 1 or not price.text.split()[1].isdigit():
-                time_slot = TimeSlot(
-                    start_date=datetime.date(1, 1, 1),
-                    price=0.0,
-                    place=''
-                )
-            else:
-                price = float(price.text.split()[1])
-                date_place = perfomance.find("div", class_="_JP4u").text.split(", ")
-                date, place = dateparser.parse(date_place[0]), date_place[1]
-            #     print(date, price, place, name)
-            #     print(type(date), type(price), type(place))
-            #     print('-------------------------')
-                time_slot = TimeSlot(
-                    start_date=date,
-                    price=price,
-                    place=place
-                )
+                continue
+            price = float(price.text.split()[1])
+            date_place = perfomance.find("div", class_="_JP4u").text.split(", ")
+            date, place = dateparser.parse(date_place[0]), date_place[1]
+        #     print(date, price, place, name)
+        #     print(type(date), type(price), type(place))
+        #     print('-------------------------')
+            time_slot = TimeSlot(
+                start_date=date,
+                price=price,
+                place=place
+            )
             perfomances.append(Event(
                 name=name,
                 genre=genre,
@@ -199,6 +190,6 @@ class AfishaParser:
 if __name__ == '__main__':
     parser = AfishaParser('https://www.afisha.ru')
     current_date = datetime.datetime.now()
-    end_date = datetime.datetime.now() + timedelta(days=7)
-    perfomances = parser.get_perfomances(start_date=current_date, end_date=end_date)
+    end_date = datetime.datetime.now() + datetime.timedelta(days=7)
+    perfomances = parser.get_films(start_date=current_date, end_date=end_date)
     print(perfomances)
