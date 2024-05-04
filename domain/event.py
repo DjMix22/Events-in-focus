@@ -110,8 +110,8 @@ class AfishaParser:
 
             if price is None or len(price.split()) <= 1 or not price.split()[1].isdigit():
                 time_slot = TimeSlot(
-                    start_date=datetime.date(1, 1, 1),
-                    price=0.0,
+                    start_date='',
+                    price='',
                     place=''
                 )
             else:
@@ -161,7 +161,7 @@ class AfishaParser:
             if price is None or len(price.text.split()) <= 1 or not price.text.split()[1].isdigit():
                 time_slot = TimeSlot(
                     start_date=datetime.date(1, 1, 1),
-                    price=0.0,
+                    price='',
                     place=''
                 )
             else:
