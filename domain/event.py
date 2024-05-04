@@ -13,6 +13,7 @@ class EventTypes(enum.StrEnum):
 class TimeSlot(BaseModel):
     time: datetime.datetime = Field(description="Время начала")
     price: float = Field(description="Цена")
+    place: str = Field(description="Место")
 
 
 class Event(BaseModel):
