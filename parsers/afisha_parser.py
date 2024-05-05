@@ -1,186 +1,161 @@
 import datetime
 from enum import StrEnum
-from bs4 import BeautifulSoup
 import dateparser
+from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from adapters.utils import get_page
 from domain.event import Event, TimeSlot, EventTypes
 
 
-class AfishaEventsTypes(StrEnum):
-    Films = 'movies'
+class PosterEventTypes(StrEnum):
+    Movie = 'movies'
     Concerts = 'concerts'
     Performances = 'performances'
 
 
-class AfishaParser:
+class PosterParser:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url
 
-    def get_films(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
-        uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date, event_type=AfishaEventsTypes.Films)
+    def get_movies(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
+        uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date, event_type=PosterEventTypes.Movie)
         url = self.build_url(uri)
         page = get_page(url)
 
         page_parser = BeautifulSoup(page, "html.parser")
 
-        block_films = page_parser.find("div", class_="S52Wl")
-        films = []
+        block_movies = page_parser.find("div", class_="S52Wl")
+        block_movies_children = block_movies.findAll("div", class_="oP17O")
+        movies = []
 
-        for film in tqdm(block_films, desc="Parse films", colour="green"):
-            name_link = film.findAll("a", class_="CjnHd y8A5E nbCNS yknrM")
+        for movie in tqdm(block_movies_children, colour="green", desc="Parsing movies"):
+            name_url = movie.find("a", class_="CjnHd y8A5E nbCNS yknrM")
 
-            if name_link:
-                name = name_link[0].text
-                url_film = f"https://www.afisha.ru{name_link[0]['href']}"
+            if not name_url:
+                continue
 
-                genre = film.findAll("div", class_="S_wwn")[0].text.split(", ")[-1]
-                date = "-".join(url_film.split("/")[-2].split("-")[::-1])
+            name = name_url.text
+            url_movie = self.build_url(name_url['href'])
+            genre = movie.find("div", class_="S_wwn").text
+            formatted_genre = genre.split()[-1]
 
-                time_slots = self.get_times_time_slots_for_films(url=url_film, date=date)
-                films.append(Event(
-                    name=name,
-                    genre=genre,
-                    event_type=EventTypes.Film,
-                    link=url_film,
-                    time_slots=time_slots
-                ))
+            date_string = url_movie.split('/')[-2]
+            date_object = datetime.datetime.strptime(date_string, "%d-%m-%Y")
 
-        return films
+            time_slots = self.get_time_slots_film(url=url_movie, date=date_object)
+
+            movies.append(Event(
+                name=name,
+                genre=formatted_genre,
+                event_type=EventTypes.Movie,
+                url=url_movie,
+                time_slots=time_slots
+            ))
+
+        return movies
 
     @staticmethod
-    def get_times_time_slots_for_films(url: str, date: str) -> list[TimeSlot]:
+    def get_time_slots_film(url: str, date: datetime.datetime) -> list[TimeSlot]:
         page = get_page(url)
         page_parser = BeautifulSoup(page, "html.parser")
 
-        block_time_slots = page_parser.find("div", class_="S52Wl")
-
-        if block_time_slots is None:
+        block_places = page_parser.find("div", class_="S52Wl")
+        if not block_places:
             return []
+        block_places_children = block_places.findAll("div", class_="PqAdz")
 
         time_slots = []
-        for time_slot in block_time_slots.childGenerator():
-            place_time_slot = time_slot.findAll("a", class_="CjnHd y8A5E MnbCM")
-
-            if not place_time_slot:
+        for place_time_slot in block_places_children:
+            place = place_time_slot.find("a", class_="CjnHd y8A5E MnbCM")
+            if not place:
                 continue
-            place_time_slot = place_time_slot[0].text
-            block_time_slots = time_slot.findAll("div", class_="bOvGC k15XR")[0]
-            price_time_slots = block_time_slots.findAll("div", class_="KS9_D")
+            formatted_place = place.text
 
-            for elem in price_time_slots:
-                price = elem.find("div", class_="ImmXK").text.split()
-                start_date = f'{date} {elem.find("div", class_="WVR9s").text}:00'
-                formatted_start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            block_time_slots = place_time_slot.find("div", class_="bOvGC k15XR")
+            time_slots_place = block_time_slots.findAll("div", class_="KS9_D")
 
-                if len(price) < 2 or not (price[1].isdigit()):
+            for time_slot in time_slots_place:
+                price = time_slot.find("div", class_="ImmXK")
+                if price is None:
+                    continue
+                price = price.text.split()
+                if len(price) < 2 or not price[1].isdigit():
                     continue
                 formatted_price = float(price[1])
 
-                time_slots.append(TimeSlot(
-                    start_date=formatted_start_date,
-                    price=formatted_price,
-                    place=place_time_slot
-                ))
+                start_time = time_slot.find("div", class_="WVR9s").text
+                start_date = date.strftime("%Y-%m-%d")
+                start_datetime = datetime.datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
 
+                time_slots.append(TimeSlot(
+                    start_date=start_datetime,
+                    price=formatted_price,
+                    place=formatted_place
+                ))
         return time_slots
 
-    def get_concerts(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
+    def get_concerts_performances(self, start_date: datetime.datetime, end_date: datetime.datetime,
+                                  event_type: PosterEventTypes) -> list[Event]:
         uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date,
-                                           event_type=AfishaEventsTypes.Concerts)
+                                           event_type=event_type)
         url = self.build_url(uri)
-        print(url)
         page = get_page(url)
 
         page_parser = BeautifulSoup(page, "html.parser")
-        block_concerts = page_parser.findAll("div", class_="oP17O")
-        concerts = []
 
-        for concert in block_concerts:
-            name_link = concert.find("a", class_="CjnHd y8A5E nbCNS yknrM")
-            name = name_link.text
-            link = f"https://www.afisha.ru{name_link['href']}"
-            price = concert.find("a", class_="CjnHd y8A5E L_ilg tCbLK faVCW").text
+        block_events = page_parser.find("div", class_="S52Wl")
+        block_events_children = block_events.findAll("div", class_="oP17O")
+        events = []
 
-            genre = concert.find("div", class_="S_wwn")
-            if genre is None:
-                genre = ''
-            else:
-                genre = genre.text
-
-            if price is None or len(price.split()) <= 1 or not price.split()[1].isdigit():
+        for event in tqdm(block_events_children, colour="green", desc=f"Parsing {event_type}"):
+            name_url = event.find("a", class_="CjnHd y8A5E nbCNS yknrM")
+            if not name_url:
                 continue
-            price = float(price.split()[1])
-            date_place = concert.find("div", class_="_JP4u").text.split(", ")
-            date, place = dateparser.parse(date_place[0]), date_place[1]
-            # print(date, price, place)
-            # print(type(date), type(price), type(place))
-            # print('-------------------------')
+
+            name = name_url.text
+            url_event = self.build_url(name_url['href'])
+
+            price = event.find("a", class_="CjnHd y8A5E L_ilg tCbLK faVCW")
+            if price is None:
+                continue
+            price = price.text.split()
+            if len(price) < 2 or not price[1].isdigit():
+                continue
+            formatted_price = float(price[1])
+
+            genre = event.find("div", class_="S_wwn").text
+            date_place = event.find("div", class_="_JP4u").text.split(", ")
+            formatted_start_date = dateparser.parse(date_place[0])
+
+            if formatted_start_date.hour == 0:
+                continue
+            place = date_place[1]
+
+            event_types = {
+                PosterEventTypes.Concerts: EventTypes.Concert,
+                PosterEventTypes.Performances: EventTypes.Performance
+             }
+
             time_slot = TimeSlot(
-                start_date=start_date,
-                price=price,
+                start_date=formatted_start_date,
+                price=formatted_price,
                 place=place
             )
-            concerts.append(Event(
+            events.append(Event(
                 name=name,
                 genre=genre,
-                event_type=EventTypes.Concert,
-                link=link,
+                event_type=event_types[event_type],
+                url=url_event,
                 time_slots=[time_slot]
             ))
-        return concerts
-
-    def get_perfomances(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
-        uri = self.build_uri_for_main_page(start_date=start_date, end_date=end_date,
-                                           event_type=AfishaEventsTypes.Performances)
-        url = self.build_url(uri)
-        print(url)
-        page = get_page(url)
-
-        page_parser = BeautifulSoup(page, "html.parser")
-        block_perfomances = page_parser.findAll("div", class_="oP17O")
-        perfomances = []
-
-        for perfomance in block_perfomances:
-            name_link = perfomance.find("a", class_="CjnHd y8A5E nbCNS yknrM")
-            name = name_link.text
-            link = f"https://www.afisha.ru{name_link['href']}"
-            price = perfomance.find("a", class_="CjnHd y8A5E L_ilg tCbLK faVCW")
-
-            genre = perfomance.find("div", class_="S_wwn")
-            if genre is None:
-                genre = ''
-            else:
-                genre = genre.text
-
-            if price is None or len(price.text.split()) <= 1 or not price.text.split()[1].isdigit():
-                continue
-            price = float(price.text.split()[1])
-            date_place = perfomance.find("div", class_="_JP4u").text.split(", ")
-            date, place = dateparser.parse(date_place[0]), date_place[1]
-        #     print(date, price, place, name)
-        #     print(type(date), type(price), type(place))
-        #     print('-------------------------')
-            time_slot = TimeSlot(
-                start_date=date,
-                price=price,
-                place=place
-            )
-            perfomances.append(Event(
-                name=name,
-                genre=genre,
-                event_type=EventTypes.Performance,
-                link=link,
-                time_slots=[time_slot]
-            ))
-        return perfomances
+        return events
 
     def build_url(self, uri: str) -> str:
         return f"{self.base_url}{uri}"
 
     @staticmethod
-    def build_uri_for_main_page(start_date: datetime, end_date: datetime, event_type: AfishaEventsTypes):
+    def build_uri_for_main_page(start_date: datetime, end_date: datetime, event_type: PosterEventTypes):
         start_date_str = start_date.strftime("%d-%m")
         end_date_str = end_date.strftime("%d-%m")
         url = f"/kemerovo/events/{start_date_str}_{end_date_str}/{event_type}/"
@@ -188,8 +163,14 @@ class AfishaParser:
 
 
 if __name__ == '__main__':
-    parser = AfishaParser('https://www.afisha.ru')
+    parser = PosterParser('https://www.afisha.ru')
     current_date = datetime.datetime.now()
-    end_date = datetime.datetime.now() + datetime.timedelta(days=7)
-    perfomances = parser.get_films(start_date=current_date, end_date=end_date)
-    print(perfomances)
+    finish_date = datetime.datetime.now() + datetime.timedelta(days=7)
+
+    parsed_movies = parser.get_movies(start_date=current_date, end_date=finish_date)
+    parsed_concerts = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Concerts)
+    parsed_performances = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Performances)
+
+    print(f"Фильмы: \n{parsed_movies}")
+    print(f"Концерты: \n{parsed_concerts}")
+    print(f"Спектакли: \n{parsed_performances}")
