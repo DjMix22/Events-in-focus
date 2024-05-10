@@ -4,8 +4,8 @@ import dateparser
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from adapters.utils import get_page
-from domain.event import Event, TimeSlot, EventTypes
+from src.adapters.utils import get_page
+from src.domain.event import Event, TimeSlot, EventTypes
 
 
 class PosterEventTypes(StrEnum):
