@@ -1,4 +1,3 @@
-from typing import List
 from pydantic import BaseModel, Field
 import datetime
 import enum
@@ -21,5 +20,5 @@ class Event(BaseModel):
     name: str = Field(description="Имя события")
     genre: str = Field(description="Жанр события")
     url: str = Field(description="Ссылка на событие")
-    time_slots: List[TimeSlot] = Field(default=[], description="Временной слот")
+    time_slots: list[TimeSlot] = Field(default=[], description="Временной слот")
     event_type: EventTypes = Field(description="Тип события")
