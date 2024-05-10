@@ -26,6 +26,8 @@ class PosterParser:
         page_parser = BeautifulSoup(page, "html.parser")
 
         block_movies = page_parser.find("div", class_="S52Wl")
+        if block_movies is None:
+            return []
         block_movies_children = block_movies.findAll("div", class_="oP17O")
         movies = []
 
@@ -105,6 +107,8 @@ class PosterParser:
         page_parser = BeautifulSoup(page, "html.parser")
 
         block_events = page_parser.find("div", class_="S52Wl")
+        if block_events is None:
+            return []
         block_events_children = block_events.findAll("div", class_="oP17O")
         events = []
 
@@ -160,17 +164,3 @@ class PosterParser:
         end_date_str = end_date.strftime("%d-%m")
         url = f"/kemerovo/events/{start_date_str}_{end_date_str}/{event_type}/"
         return url
-
-
-if __name__ == '__main__':
-    parser = PosterParser('https://www.afisha.ru')
-    current_date = datetime.datetime.now()
-    finish_date = datetime.datetime.now() + datetime.timedelta(days=7)
-
-    parsed_movies = parser.get_movies(start_date=current_date, end_date=finish_date)
-    parsed_concerts = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Concerts)
-    parsed_performances = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Performances)
-
-    print(f"Фильмы: \n{parsed_movies}")
-    print(f"Концерты: \n{parsed_concerts}")
-    print(f"Спектакли: \n{parsed_performances}")

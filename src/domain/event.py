@@ -23,7 +23,3 @@ class Event(BaseModel):
     url: str = Field(description="Ссылка на событие")
     time_slots: List[TimeSlot] = Field(default=[], description="Временной слот")
     event_type: EventTypes = Field(description="Тип события")
-
-
-if __name__ == "__main__":
-    Event(name="Кино1", genre="Приключения", event_type=EventTypes.Movie, url='')
