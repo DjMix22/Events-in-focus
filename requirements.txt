@@ -3,3 +3,5 @@ beautifulsoup4
 pydantic
 dateparser
 tqdm
+pyTelegramBotAPI
+python-dotenv
