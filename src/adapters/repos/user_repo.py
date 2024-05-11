@@ -1,9 +1,7 @@
 import json
 from pathlib import Path
 
-
-class DuplicateValueError(Exception):
-    pass
+from src.domain.exceptions import DuplicateValueError
 
 
 class UserRepo:

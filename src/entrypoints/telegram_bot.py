@@ -5,7 +5,8 @@ from os import getenv
 from pathlib import Path
 
 from src.adapters.repos.event_repo import EventRepo
-from src.adapters.repos.user_repo import UserRepo, DuplicateValueError
+from src.domain.exceptions import DuplicateValueError
+from src.adapters.repos.user_repo import UserRepo
 
 load_dotenv()
 TOKEN = getenv("TOKEN")
@@ -81,6 +82,7 @@ def add_to_admins(call: CallbackQuery):
         try:
             user_repo = UserRepo(user_id, file_path)
             user_repo.save("admins")
+
             text_to_main_admin = f"*Вы успешно добавили в админы пользователя с id:* `{user_id}`*!*"
             text_to_user = "*Вы успешно добавились в список администрации!*"
 
