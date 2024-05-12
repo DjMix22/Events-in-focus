@@ -103,7 +103,8 @@ def show_info_about_event(call: CallbackQuery):
     current_event = next(event for event in events if event.id == event_id)
 
     time_slots = "\n".join(
-        f"- {time_slot.start_date.strftime('%d')} {months_translate[time_slot.start_date.strftime('%B')]} {time_slot.start_date.strftime('%H:%M')}"
+        f"- {time_slot.start_date.strftime('%d')} {months_translate[time_slot.start_date.strftime('%B')]} "
+        f"{time_slot.start_date.strftime('%H:%M')}, цена: {time_slot.price}, место: {time_slot.place}"
         for time_slot in current_event.time_slots
     )
 
