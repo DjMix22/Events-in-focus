@@ -10,10 +10,10 @@ class EventRepo:
         self.file_path = file_path
         self.items = []
 
-    def add_event(self, event: Event):
+    def add_event(self, event: Event) -> None:
         self.items.append(event)
 
-    def add_events(self, events: list[Event]):
+    def add_events(self, events: list[Event]) -> None:
         self.items += events
 
     def save(self) -> None:
