@@ -5,3 +5,4 @@ dateparser
 tqdm
 pyTelegramBotAPI
 python-dotenv
+customtkinter

@@ -1,16 +1,39 @@
-import datetime
-from src.adapters.parsers.poster_parser import PosterParser, PosterEventTypes
+import customtkinter
+import threading
+from src.entrypoints.telegram_bot import run_bot, stop_bot
+from src.entrypoints.parsing import update_database
 
 
-parser = PosterParser('https://www.afisha.ru')
-current_date = datetime.datetime.now()
-finish_date = datetime.datetime.now() + datetime.timedelta(days=7)
+def run_telegram_bot():
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
 
-# parsed_movies = parser.get_movies(start_date=current_date, end_date=finish_date)
-parsed_concerts = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Concerts)
-parsed_performances = parser.get_concerts_performances(start_date=current_date, end_date=finish_date, event_type=PosterEventTypes.Performances)
-parsed_events = parsed_concerts + parsed_performances
 
-# print(f"Фильмы: \n{parsed_movies}")
-# print(f"Концерты: \n{parsed_concerts}")
-# print(f"Спектакли: \n{parsed_performances}")
+window = customtkinter.CTk()
+window.title("Панель управления")
+
+window.geometry("400x300")
+
+customtkinter.set_appearance_mode("dark")
+
+telegram_bot_button = customtkinter.CTkButton(window, text="Запустить телеграмм-бота", command=run_telegram_bot,
+                                              height=50, width=300, font=('Comic Sans MS', 15), fg_color='#0267bf',
+                                              hover_color='#1d85e0')
+telegram_bot_button.grid(row=0, column=0, padx=10, pady=5)
+
+telegram_bot_stop_button = customtkinter.CTkButton(window, text="Выключить телеграмм-бота", command=stop_bot,
+                                                   height=50, width=300, font=('Arial', 15), fg_color='#0267bf',
+                                                   hover_color='#1d85e0')
+telegram_bot_stop_button.grid(row=1, column=0, padx=10, pady=5)
+
+update_database_button = customtkinter.CTkButton(window, text="Обновить базу данных", command=update_database,
+                                                 height=50, width=300, font=('Arial', 15), fg_color='#0267bf',
+                                                 hover_color='#1d85e0')
+update_database_button.grid(row=2, column=0, padx=10, pady=5)
+
+window.grid_rowconfigure(0, weight=1)
+window.grid_rowconfigure(1, weight=1)
+window.grid_rowconfigure(2, weight=1)
+window.grid_columnconfigure(0, weight=1)
+
+window.mainloop()

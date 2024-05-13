@@ -6,7 +6,7 @@ from pathlib import Path
 
 from src.adapters.repos.event_repo import EventRepo
 from src.domain.event import EventTypes
-from src.domain.exceptions import DuplicateValueError
+from src.domain.errors import DuplicateValueError
 from src.adapters.repos.user_repo import UserRepo
 from src.constants import months_translate, event_translate
 
@@ -15,7 +15,7 @@ TOKEN = getenv("TOKEN")
 ID_MAIN_ADMIN = getenv("ID_MAIN_ADMIN")
 bot = TeleBot(TOKEN)
 
-file_path_to_data = Path(__file__).parent.parent / 'data'
+file_path_to_data = Path(__file__).parent.parent.parent / 'data'
 
 event_repo = EventRepo(file_path=file_path_to_data / 'events.json')
 events = event_repo.load()
@@ -176,5 +176,9 @@ def add_to_admins(call: CallbackQuery):
     )
 
 
-if __name__ == "__main__":
+def run_bot():
     bot.polling()
+
+
+def stop_bot():
+    bot.stop_polling()

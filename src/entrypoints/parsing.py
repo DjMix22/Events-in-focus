@@ -7,7 +7,7 @@ from src.adapters.repos.event_repo import EventRepo
 current_date = datetime.now()
 finish_date = datetime.now() + timedelta(days=7)
 
-file_path = Path(__file__).parent.parent / 'data' / 'events.json'
+file_path = Path(__file__).parent.parent.parent / 'data' / 'events.json'
 
 
 def main() -> None:
@@ -28,5 +28,5 @@ def main() -> None:
     event_repo.save()
 
 
-if __name__ == '__main__':
+def update_database():
     main()
