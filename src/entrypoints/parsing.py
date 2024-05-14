@@ -10,7 +10,7 @@ finish_date = datetime.now() + timedelta(days=7)
 file_path = Path(__file__).parent.parent.parent / 'data' / 'events.json'
 
 
-def main() -> None:
+def update_database() -> None:
     parser = PosterParser('https://www.afisha.ru')
 
     parsed_movies = parser.get_movies(start_date=current_date, end_date=finish_date)
@@ -26,7 +26,3 @@ def main() -> None:
     event_repo = EventRepo(file_path)
     event_repo.add_events(parsed_events)
     event_repo.save()
-
-
-def update_database():
-    main()
