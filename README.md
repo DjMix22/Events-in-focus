@@ -16,7 +16,7 @@
 
 ```python
 TOKEN='YOUR_TOKEN'
-ID_MAIN_ADMIN='ID_MAIN_ADMIN'
+ID_MAIN_ADMIN=ID_MAIN_ADMIN
 ```
 
 2. Установите необходимые библиотеки:
