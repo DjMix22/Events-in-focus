@@ -159,7 +159,7 @@ class PosterParser:
         return f"{self.base_url}{uri}"
 
     @staticmethod
-    def build_uri_for_main_page(start_date: datetime, end_date: datetime, event_type: PosterEventTypes):
+    def build_uri_for_main_page(start_date: datetime, end_date: datetime, event_type: PosterEventTypes) -> str:
         start_date_str = start_date.strftime("%d-%m")
         end_date_str = end_date.strftime("%d-%m")
         url = f"/kemerovo/events/{start_date_str}_{end_date_str}/{event_type}/"
