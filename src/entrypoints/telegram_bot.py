@@ -34,7 +34,20 @@ class TelegramBot:
         self.bot.message_handler(commands=['admin'])(self.admin_command)
         self.bot.callback_query_handler(func=lambda call: call.data.split()[0] in ("yes", "no"))(self.add_to_admins)
 
+    def check_user_in_list(self, user_id: int, chat_id: int, list_save: str) -> bool:
+        user_repo = UserRepo(user_id, file_path_to_data / 'users.json')
+        if user_repo.id_in_db(list_save):
+            print("drochit")
+            self.bot.send_message(
+                chat_id=chat_id,
+                text="*🚫 Вы в бан листе!*",
+                parse_mode="Markdown"
+            )
+            return True
+
     def start_command(self, message: Message):
+        if self.check_user_in_list(message.from_user.id, message.chat.id, "bans"):
+            return None
         start_message = (
             "<b>🌟 Приветствую вас в моём телеграм-боте, посвященном актуальным событиям в городе!\n\n"
             "📱 Ссылки на разработчика и проект:\n"
@@ -52,6 +65,8 @@ class TelegramBot:
         )
 
     def help_command(self, message: Message):
+        if self.check_user_in_list(message.from_user.id, message.chat.id, "bans"):
+            return None
         help_message = (
             "*🎉Напиши команду /events, если вы хотите узнать события на последующую неделю!\n"
             "🚀Напиши команду /admin, если вы хотите стать админом!*"
@@ -63,6 +78,8 @@ class TelegramBot:
         )
 
     def events_command(self, message: Message):
+        if self.check_user_in_list(message.from_user.id, message.chat.id, "bans"):
+            return None
         markup = InlineKeyboardMarkup()
         event_types = {
             "🎬 Фильмы": EventTypes.Movie,
@@ -127,6 +144,8 @@ class TelegramBot:
         )
 
     def admin_command(self, message: Message):
+        if self.check_user_in_list(message.from_user.id, message.chat.id, "bans"):
+            return None
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(
             text="✅",

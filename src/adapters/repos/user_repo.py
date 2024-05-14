@@ -9,6 +9,14 @@ class UserRepo:
         self.user_id = user_id
         self.file_path = file_path
 
+    def id_in_db(self, list_save: str) -> bool:
+        with open(self.file_path, 'r') as file_users:
+            data = json.load(file_users)
+
+        if self.user_id in data[list_save]:
+            return True
+        return False
+
     def save(self, list_save: str) -> None:
         with open(self.file_path, 'r') as file_users:
             data = json.load(file_users)
