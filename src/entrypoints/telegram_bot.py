@@ -37,7 +37,6 @@ class TelegramBot:
     def check_user_in_list(self, user_id: int, chat_id: int, list_save: str) -> bool:
         user_repo = UserRepo(user_id, file_path_to_data / 'users.json')
         if user_repo.id_in_db(list_save):
-            print("drochit")
             self.bot.send_message(
                 chat_id=chat_id,
                 text="*🚫 Вы в бан листе!*",
